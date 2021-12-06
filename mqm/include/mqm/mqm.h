@@ -69,6 +69,12 @@ class MqmSink
     std::vector<MqmConsumerPtr<Key, Value>> consumers_;
     std::mutex consumersMtx_;
     const Key key_;
+
+    std::vector<MqmConsumerPtr<Key, Value>> getConsumers()
+    {
+        std::unique_lock<std::mutex> lock{ consumersMtx_ };
+        return consumers_;
+    }
 public:
 
     MqmSink(const Key& key) : key_(key) { }
@@ -81,8 +87,8 @@ public:
 
     void consume(const std::vector<Value>& values)
     {
-        std::unique_lock<std::mutex> lock{ consumersMtx_ };
-        for (auto& c : consumers_)
+        auto consumers = getConsumers();
+        for (auto& c : consumers)
             for (auto& v : values)
                 try
                 {
@@ -196,6 +202,7 @@ public:
         for (auto& s : sources_)
             s.second->stop();
     }
+
     void subscribe(const Key& key, const MqmConsumerPtr<Key, Value>& consumer)
     {
         bool created{};
@@ -204,11 +211,13 @@ public:
         if (created)
             sink->start(getSource(key));
     }
+
     void unsubscribe(const Key& key)
     {
         removeSource(key);
         removeSink(key);
     }
+
     void enqueue(const Key& key, Value&& value)
     {
         getSource(key)->enqueue(std::move(value));
