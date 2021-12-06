@@ -3,17 +3,15 @@
 
 #include "mqm/mqm.h"
 
-std::atomic<uint64_t> gTotalProcessed;
 
 class TestConsumer : public mqm::MqmConsumer<size_t, std::string>
 {
-    const std::string name_;
+    std::atomic <size_t>& total_;
 public:
-    TestConsumer(const std::string& name) : name_(name) {}
+    TestConsumer(std::atomic <size_t>& total) : total_(total) {}
     void consume(const size_t& id, const std::string& value)
     {
-        //std::cout << "Consumer[" << name_ << "] ( " << id << ", " << value << ")\n";
-        ++gTotalProcessed;
+        ++total_;
     }
 };
 
@@ -21,6 +19,7 @@ int main(int argc, char** argv)
 {
     const size_t totalIds = 100;
     const size_t totalMsg = 100500;
+    std::atomic <size_t> totalProcessed;
     {
         mqm::MqmProcessor<size_t, std::string> processor;
         std::thread producer([&]() {
@@ -29,12 +28,12 @@ int main(int argc, char** argv)
         });
 
         for (size_t i = 0; i < totalIds; ++i)
-            processor.subscribe(i, std::make_shared< TestConsumer >(std::to_string(i)));
+            processor.subscribe(i, std::make_shared< TestConsumer >(totalProcessed));
 
         producer.join();
         std::cout << totalMsg << " were sent\n";
     }
-    std::cout << gTotalProcessed << " were processed\n";
+    std::cout << totalProcessed << " were processed\n";
 
     return 0;
 }

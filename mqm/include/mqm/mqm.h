@@ -4,6 +4,7 @@
 #include <mutex>
 #include <memory>
 #include <future>
+#include <iostream>
 
 namespace mqm
 {
@@ -25,8 +26,8 @@ class MqmSource
     std::vector<Value> values_;
     std::mutex mtx_;
     std::condition_variable cv_;
-
     bool stopped_ = false;
+
 public:
     void enqueue(Value&& v)
     {
@@ -36,12 +37,14 @@ public:
         values_.emplace_back(std::move(v));
         cv_.notify_one();
     }
+
     void stop()
     {
         std::unique_lock<std::mutex> lock{ mtx_ };
         stopped_ = true;
         cv_.notify_one();
     }
+
     bool get(std::vector<Value>& values)
     {
         values.clear();
@@ -120,7 +123,8 @@ public:
         MqmSinkWeak<Key, Value> sinkWeak = sink_;
         task_ = std::async(std::launch::async, [sourceWeak, sinkWeak]() {
             std::vector<Value> values;
-            for (bool stopped = false; !stopped; ) try
+            for (bool stopped = false; !stopped; )
+            try
             {
                 auto source = sourceWeak.lock();
                 auto sink = sinkWeak.lock();
@@ -154,7 +158,7 @@ class MqmProcessor
     MqmSourcePtr<Value> getSource(const Key& key)
     {
         std::unique_lock<std::mutex> lock{ sourcesMtx_ };
-        auto ib = sources_.insert(std::make_pair(key, MqmSourcePtr<Value>{}));
+        auto ib = sources_.insert({key, nullptr});
         if (ib.second)
             ib.first->second = std::make_shared<MqmSource<Value>>();;
         return ib.first->second;
@@ -173,7 +177,7 @@ class MqmProcessor
     MqmActiveSinkPtr<Key, Value> getSink(const Key& key, bool& created)
     {
         std::unique_lock<std::mutex> lock{ sinksMtx_ };
-        auto ib = sinks_.insert(std::make_pair(key, MqmActiveSinkPtr<Key, Value>{}));
+        auto ib = sinks_.insert({ key, nullptr });
         created = ib.second;
         if (ib.second)
             ib.first->second = std::make_shared<MqmActiveSink<Key, Value>>(key);
@@ -190,9 +194,7 @@ public:
     ~MqmProcessor()
     {
         for (auto& s : sources_)
-        {
             s.second->stop();
-        }
     }
     void subscribe(const Key& key, const MqmConsumerPtr<Key, Value>& consumer)
     {
