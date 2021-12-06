@@ -1,11 +1,10 @@
 # mqmeter
-+---------+-----------------+---------------------------+
-|  step   | Windows         | Linux                     |
-+---------+-----------------+---------------------------+
-| python  | install python3 | apt install python3       |
-| pip     | install pip     | apt install python3-pip   |
-| cmake   | install cmake   | apt install cmake         |
-| conan   |     pip install conan                       |
-| gen     |     cmake -DCMAKE_BUILD_TYPE=Debug ..       |
-| build   |     cmake --build .                         |
-+---------+-----------------+---------------------------+
+
+Trivial impl of multi-threading queue.
+
+Steps :
+1. install python
+2. install pip
+3. install conan ( pip install conan )
+4. generate ( cmake -DCMAKE_BUILD_TYPE=Debug .. )
+5. build ( cmake --build . )
