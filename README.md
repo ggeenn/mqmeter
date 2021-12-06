@@ -1,5 +1,8 @@
 # mqmeter
 
+Trivial impl of multi-threading queue.
+
+Steps :
 1. install python
 2. install pip
 3. install conan ( pip install conan )
